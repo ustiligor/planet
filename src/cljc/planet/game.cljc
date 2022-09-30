@@ -24,9 +24,17 @@
 (defn make-player
   [home]
   {:transporters
-   {[:arkakx 1]
-    {:tile home
-     :cargo []}}})
+   (reduce
+    (fn [transporters n]
+      (assoc
+       transporters
+       [:arkakx n]
+       {:tile home
+        :cargo []}))
+    {}
+    (range 3))
+   :home home
+   })
 
 (defn new-game
   [players]
