@@ -4,4 +4,5 @@
 
 (defn -main
   []
-  (println (game/new-game)))
+  (println (game/new-game))
+  )
