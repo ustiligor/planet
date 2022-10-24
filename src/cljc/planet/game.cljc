@@ -5,6 +5,14 @@
 (def directions
   [[0 1] [1 0] [1 -1] [0 -1] [-1 0] [-1 1]])
 
+(def tile-types
+  [:plains
+   :forest
+   :mountain
+   :desert
+   :rocks
+   :ocean])
+
 (defn apply-direction
   [location direction]
   (let [[x y] location
@@ -68,20 +76,41 @@
      (apply-direction location direction))
    directions))
 
-(defn open-locations?
-  [game]
-  (let [tiles (get game :tiles)
-        locations (set (keys tiles))]
+(defn open-locations
+  [tiles]
+  (let [locations (set (keys tiles))]
     (if (empty? tiles)
       [[0 0]]
-      (reduce
-       (fn [open location]
-         (let [adjacent (set (adjacent-locations location))
-               locally-open (set/difference adjacent locations)]
-           (set/union open locally-open)))
-       #{}
+      (set/difference
+       (reduce
+        (fn [open location]
+          (let [adjacent (set (adjacent-locations location))]
+            (set/union open adjacent)))
+        #{}
+        locations)
        locations))))
 
 (defn add-tile
   [game location tile]
   (assoc-in game [:tiles location] tile))
+
+(defn random-world
+  [size]
+  (reduce
+   (fn [tiles n]
+     (let [open (vec (open-locations tiles))
+           location (rand-nth open)
+           type (rand-nth tile-types)]
+       (assoc tiles location {:type type})))
+   {}
+   (range size)))
+
+;; [-2 2]      [0 1]     [2 0]     ---->    f   d   p
+;;       [-1 1]     [1 0]          ---->      p   d
+;; [-2 1]      [0 0]     [2 -1]    ---->    o   o   r
+;;       [-1 0]     [1 -1]         ---->      r   m
+;; [-2 0]      [0 -1]    [2 -2]    ---->    m   p   p
+
+(defn print-tiles
+  [tiles]
+  )
