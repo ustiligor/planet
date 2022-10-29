@@ -1,6 +1,7 @@
 (ns planet.game
   (:require
-   [clojure.set :as set]))
+   [clojure.set :as set]
+   [clojure.string :as string]))
 
 (def directions
   [[0 1] [1 0] [1 -1] [0 -1] [-1 0] [-1 1]])
@@ -106,11 +107,44 @@
    (range size)))
 
 ;; [-2 2]      [0 1]     [2 0]     ---->    f   d   p
-;;       [-1 1]     [1 0]          ---->      p   d
-;; [-2 1]      [0 0]     [2 -1]    ---->    o   o   r
-;;       [-1 0]     [1 -1]         ---->      r   m
+;;       [-1 1]     [1 0]          ---->    | p | d
+;; [-2 1]      [0 0]     [2 -1]    ---->    o | o | r
+;;       [-1 0]     [1 -1]         ---->    | r | m
 ;; [-2 0]      [0 -1]    [2 -2]    ---->    m   p   p
+
+(defn leftmost-index
+  [tiles]
+  (first (sort (map first (keys tiles)))))
+
+(defn location-height
+  [[x y]]
+  (+ x (* 2 y)))
 
 (defn print-tiles
   [tiles]
-  )
+  (let [rows (group-by location-height (keys tiles))
+        column-keys (sort (map first (keys tiles)))
+        left (first column-keys)
+        right (last column-keys)
+        column-indexes (range left (inc right))
+        row-keys (reverse (sort (keys rows)))
+        top (first row-keys)
+        bottom (last row-keys)
+        row-indexes (range top (dec bottom) -1)]
+    (doseq [row row-indexes]
+      (let [columns
+            (map
+             (fn [column]
+               (let [offset (- row column)]
+                 (if (odd? offset)
+                   "|"
+                   (let [location [column (/ offset 2)]
+                         tile (get tiles location)]
+                     (if tile
+                       (let [tile-type (get tile :type)
+                             tile-symbol (first (name tile-type))]
+                         tile-symbol)
+                       " ")))))
+             column-indexes)
+            row-string (string/join " " columns)]
+        (println row-string)))))
