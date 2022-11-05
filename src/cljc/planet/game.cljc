@@ -50,7 +50,7 @@
       (assoc
        transporters
        [:arkakx n]
-       {:tile home
+       {:tile {:location home}
         :cargo []}))
     {}
     (range 3))
@@ -65,7 +65,6 @@
    :resources {}
    :buildings {}
    :walls {}
-   :rivers {}
    :wonder {}
    :temple {}
    :order {}})
@@ -76,6 +75,38 @@
    (fn [direction]
      (apply-direction location direction))
    directions))
+
+(defn adjacent-tiles
+  [tiles location]
+  (let [adjacent-to (adjacent-locations location)
+        adjacent (filter
+                  (fn [adjacent]
+                    (get tiles adjacent))
+                  adjacent-to)]
+    adjacent))
+
+(defn adjacent-count
+  [tiles location]
+  (count (adjacent-tiles tiles location)))
+
+(defn adjacent-counts
+  [tiles locations]
+  (reduce
+   (fn [counts location]
+     (assoc
+      counts
+      location
+      (adjacent-count tiles location)))
+   {}
+   locations))
+
+(defn most-adjacent-tiles
+  [tiles locations]
+  (let [counts (adjacent-counts tiles locations)
+        count-groups (group-by last counts)
+        largest (last (sort (keys count-groups)))
+        largest-group (get count-groups largest)]
+    (map first largest-group)))
 
 (defn open-locations
   [tiles]
@@ -101,6 +132,23 @@
    (fn [tiles n]
      (let [open (vec (open-locations tiles))
            location (rand-nth open)
+           type (rand-nth tile-types)]
+       (assoc tiles location {:type type})))
+   {}
+   (range size)))
+
+(defn glob-world
+  [size river-frequency]
+  (reduce
+   (fn [tiles n]
+     (let [open (vec (open-locations tiles))
+           most-adjacent (most-adjacent-tiles tiles open)
+           location (rand-nth most-adjacent)
+           adjacent (adjacent-tiles tiles location)
+           oceans (filter
+                   (fn [tile]
+                     (= :ocean (get-in tiles [tile :type])))
+                   adjacent)
            type (rand-nth tile-types)]
        (assoc tiles location {:type type})))
    {}
