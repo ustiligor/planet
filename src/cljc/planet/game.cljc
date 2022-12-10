@@ -6,13 +6,42 @@
 (def directions
   [[0 1] [1 0] [1 -1] [0 -1] [-1 0] [-1 1]])
 
-(def tile-types
+(def land-types
   [:plains
    :forest
    :mountain
    :desert
    :rocks
    :ocean])
+
+(def land-frequencies
+  {[:plains 0] 10
+   [:plains 2] 3
+   [:plains 3] 1
+   [:forest 0] 10
+   [:forest 2] 3
+   [:forest 3] 1
+   [:mountain 0] 8
+   [:mountain 1] 5
+   [:desert 0] 10
+   [:desert 2] 1
+   [:desert 3] 1
+   [:rocks 0] 10
+   [:rocks 2] 3
+   [:rocks 3] 1
+   [:ocean 0] 10})
+
+(defn pick-tile
+  [distribution]
+  (let [total (reduce + 0 (vals distribution))]
+    (loop [choice (* (rand) total)
+           options (vec distribution)]
+      (let [[tile proportion] (first options)]
+        (if (< choice proportion)
+          tile
+          (recur
+           (- choice proportion)
+           (rest options)))))))
 
 (defn apply-direction
   [location direction]
@@ -126,16 +155,26 @@
   [game location tile]
   (assoc-in game [:tiles location] tile))
 
-(defn random-world
-  [size]
-  (reduce
-   (fn [tiles n]
-     (let [open (vec (open-locations tiles))
-           location (rand-nth open)
-           type (rand-nth tile-types)]
-       (assoc tiles location {:type type})))
-   {}
+(defn make-tile
+  [distribution]
+  (let [[land rivers] (pick-tile distribution)]
+    {:type land :rivers (take rivers (shuffle directions))}))
+
+(defn generate-tiles
+  [size distribution]
+  (map
+   (fn [n] (make-tile distribution))
    (range size)))
+
+(defn random-world
+  [size available-tiles]
+  (reduce
+   (fn [tiles tile]
+     (let [open (vec (open-locations tiles))
+           location (rand-nth open)]
+       (assoc tiles location tile)))
+   {}
+   (take size (shuffle available-tiles))))
 
 (defn glob-world
   [size river-frequency]
@@ -149,7 +188,7 @@
                    (fn [tile]
                      (= :ocean (get-in tiles [tile :type])))
                    adjacent)
-           type (rand-nth tile-types)]
+           type (rand-nth land-types)]
        (assoc tiles location {:type type})))
    {}
    (range size)))
