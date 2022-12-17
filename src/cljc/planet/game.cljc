@@ -6,6 +6,10 @@
 (def directions
   [[0 1] [1 0] [1 -1] [0 -1] [-1 0] [-1 1]])
 
+(defn inverse-direction
+  [[x y]]
+  [(* x -1) (* y -1)])
+
 (def land-types
   [:plains
    :forest
@@ -79,7 +83,7 @@
       (assoc
        transporters
        [:arkakx n]
-       {:tile {:location home}
+       {:tile home
         :cargo []}))
     {}
     (range 3))
@@ -98,21 +102,31 @@
    :temple {}
    :order {}})
 
+(defn direction-locations
+  [location]
+  (into
+   {}
+   (map
+    (fn [direction]
+      [direction (apply-direction location direction)])
+    directions)))
+
 (defn adjacent-locations
   [location]
-  (map
-   (fn [direction]
-     (apply-direction location direction))
-   directions))
+  (vals (direction-locations location)))
+
+(defn direction-tiles
+  [tiles location]
+  (let [adjacent-to (direction-locations location)
+        adjacent (filter
+                  (fn [[direction adjacent]]
+                    (get tiles adjacent))
+                  adjacent-to)]
+    (into {} adjacent)))
 
 (defn adjacent-tiles
   [tiles location]
-  (let [adjacent-to (adjacent-locations location)
-        adjacent (filter
-                  (fn [adjacent]
-                    (get tiles adjacent))
-                  adjacent-to)]
-    adjacent))
+  (vals (direction-tiles tiles location)))
 
 (defn adjacent-count
   [tiles location]
@@ -151,6 +165,31 @@
         locations)
        locations))))
 
+(defn matching-location?
+  [tiles tile location]
+  (let [adjacent (direction-tiles tiles location)]
+    (every?
+     (fn [[direction adjacent-tile]]
+       (let [inverse (inverse-direction direction)
+             river? (some #{direction}
+                          (get tile :rivers))]
+         (if river?
+           (or
+            (= (get adjacent :type) :ocean)
+            (some #{inverse} (get adjacent :rivers)))
+           (or
+            (= (get tile :type) :ocean)
+            (not (some #{inverse} (get adjacent :rivers)))))))
+     adjacent)))
+
+(defn matching-locations
+  [tiles tile]
+  (let [open (open-locations tiles)]
+    (filter
+     (fn [location]
+       (matching-location? tiles tile location))
+     open)))
+
 (defn add-tile
   [game location tile]
   (assoc-in game [:tiles location] tile))
@@ -170,7 +209,7 @@
   [size available-tiles]
   (reduce
    (fn [tiles tile]
-     (let [open (vec (open-locations tiles))
+     (let [open (vec (matching-locations tiles tile))
            location (rand-nth open)]
        (assoc tiles location tile)))
    {}
