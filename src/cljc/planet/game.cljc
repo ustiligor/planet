@@ -169,17 +169,18 @@
   [tiles tile location]
   (let [adjacent (direction-tiles tiles location)]
     (every?
-     (fn [[direction adjacent-tile]]
+     (fn [[direction adjacent-location]]
        (let [inverse (inverse-direction direction)
+             adjacent-tile (get tiles adjacent-location)
              river? (some #{direction}
                           (get tile :rivers))]
          (if river?
            (or
-            (= (get adjacent :type) :ocean)
-            (some #{inverse} (get adjacent :rivers)))
+            (= (get adjacent-tile :type) :ocean)
+            (some #{inverse} (get adjacent-tile :rivers)))
            (or
             (= (get tile :type) :ocean)
-            (not (some #{inverse} (get adjacent :rivers)))))))
+            (not (some #{inverse} (get adjacent-tile :rivers)))))))
      adjacent)))
 
 (defn matching-locations
